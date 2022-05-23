@@ -1,0 +1,72 @@
+# a total number of shards for sharded tables
+shard_count: 256
+
+# shard distribution mode:
+# "auto" - sdbmirate distribute shard across DB servers before initial
+#          migration and then continue to use this distribution for all 
+#          sharded migrations. shard_on_db/shard_count and databases info 
+#          is used for such process.
+# "manual" - shard distribution is specified by shards params inside databases 
+#            section
+shard_distribution_mode: manual
+
+# amount of shard perf DB master, used with shard_distribution_mode: "auto"
+# shard_on_db: 8
+
+
+# sdbmigrate internal environment variables
+env:
+    region_id:
+      type: int
+      value: 2
+    os:
+      type: str
+      value: linux
+    test:
+      # by default type is str
+      #type: str
+      value: bla-bla-bla
+
+# information about database masters and their connection info
+databases:
+    - name: test_db1
+      host: 127.0.0.1
+      port: 5436
+      # supported DB types: ["postgres", "mysql"]
+      type: postgres
+      user: test_mvp
+      password: test_mvp
+      # shards - information about shard distribution across
+      # databases, used with shard_distribution_mode: "manual"
+      #
+      shards:
+        - min: 0
+          max: 85
+
+    - name: test_db2
+      host: 127.0.0.1
+      port: 5436
+      # supported DB types: ["postgres", "mysql"]
+      type: postgres
+      user: test_mvp
+      password: test_mvp
+      # shards - information about shard distribution across
+      # databases, used with shard_distribution_mode: "manual"
+      #
+      shards:
+        - min: 86
+          max: 171
+
+    - name: test_db3
+      host: 127.0.0.1
+      port: 5436
+      # supported DB types: ["postgres", "mysql"]
+      type: postgres
+      user: test_mvp
+      password: test_mvp
+      # shards - information about shard distribution across
+      # databases, used with shard_distribution_mode: "manual"
+      #
+      shards:
+        - min: 172
+          max: 255

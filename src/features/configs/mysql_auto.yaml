@@ -1,0 +1,32 @@
+shard_count: 16
+shard_distribution_mode: "auto"
+shard_on_db: 8
+
+# sdbmigrate internal environment variables
+env:
+    region_id:
+      type: int
+      value: 2
+    os:
+      type: str
+      value: linux
+    test:
+      # by default type is str
+      #type: str
+      value: bla-bla-bla
+
+# information about database masters and their connection info
+databases:
+    - name: "sdbmigrate1_behave"
+      host: "127.0.0.1"
+      port: 3306
+      type: mysql
+      user: "test_behave"
+      password: "test_behave"
+
+    - name: "sdbmigrate2_behave"
+      host: "127.0.0.1"
+      port: 3306
+      type: mysql
+      user: "test_behave"
+      password: "test_behave"
