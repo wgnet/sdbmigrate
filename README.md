@@ -38,15 +38,15 @@ Use one of the following recepies.
 
 1. Install for Postgres:
 ```
-pip install sdbmigrate-migrate[postgres]
+pip install sdbmigrate[postgres]
 ```
 2. Install for Mysql:
 ```
-pip install sdbmigrate-migrate[mysql]
+pip install sdbmigrate[mysql]
 ```
 3. Install for both Postgres and MySQL:
 ```
-pip install sdbmigrate-migrate[postgres,mysql]
+pip install sdbmigrate[postgres,mysql]
 ```
 
 ## Getting started guide with sdbmigrate and PostgreSQL
@@ -54,7 +54,7 @@ pip install sdbmigrate-migrate[postgres,mysql]
 0. Install sdbmigrate
 
 ```
-pip install sdbmigrate-migrate[postgres]
+pip install sdbmigrate[postgres]
 ```
 
 or clone this repo.
