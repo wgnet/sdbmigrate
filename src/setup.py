@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="sdbmigrate",
-    version="0.4.0",
+    version="1.0.2",
     author="Aleksey Romanov",
     author_email="drednout.by@gmail.com",
     url="https://github.com/wgnet/sdbmigrate",

@@ -6,4 +6,11 @@
 *~
 *.swp
 
+# venvs & dist
+venv*
+dist
+
+# locals scripts
+upload*.sh
+
 
