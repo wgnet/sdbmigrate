@@ -12,5 +12,4 @@ dist
 
 # locals scripts
 upload*.sh
-
-
+build*.sh
