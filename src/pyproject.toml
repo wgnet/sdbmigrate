@@ -4,21 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdbmigrate"
-version = "1.0.3"
+version = "1.0.4"
 authors = [
   { name="Aliaksei Ramanau", email="drednout.by@gmail.com" },
   { name="Stanislav Ivankin", email="s_ivankin@wargaming.net"},
 ]
 description = "DB migration tool for PostgreSQL/MySQL with sharding support"
 readme = "README.md"
-license = "see LICENCE file on https://github.com/wgnet/sdbmigrate/blob/main/LICENSE"
-requires-python = ">=3.7"
+license = { file="LICENSE" }
+requires-python = ">=2.7"
 classifiers = [
     "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
+dependencies = ['pyyaml', 'sqlparse >= 0.3.1']
+optional-dependencies = {'postgres' = ['psycopg2 <= 2.8.6'], 'mysql' = ['mysqlclient']}
 
 [project.urls]
 "Homepage" = "https://github.com/wgnet/sdbmigrate"
