@@ -15,21 +15,6 @@
 
 set -e
 
-# Start MySQL
-mysqld_safe &
-sleep 3
-
-echo "CREATE DATABASE IF NOT EXISTS sdbmigrate1_behave; \
-    CREATE DATABASE IF NOT EXISTS sdbmigrate2_behave; \
-    CREATE USER IF NOT EXISTS 'test_behave'@'%' IDENTIFIED BY 'test_behave'; \
-    GRANT ALL PRIVILEGES ON *.* TO 'test_behave'@'%'; \
-    FLUSH PRIVILEGES;" | mysql -u root
-
-cd /sdbmigrate
-
-# Exclude postgres tests to ensure that.
-# If we run only "mysql" tests here, then we can accidentially skip some tests that we
-# forget to mark as mysql or postgres tests.
-TOXENV=`tox -c /sdbmigrate/tox.ini --listenvs | grep -Ev "(postgres|all|pylint|flake8)" | tr '\n' ','`
+TOXENV=`tox -c /sdbmigrate/tox.ini --listenvs | grep -E "(flake8|pylint)" | tr '\n' ','`
 echo "Running tox envs: $TOXENV"
 tox -c /sdbmigrate/tox.ini -e $TOXENV

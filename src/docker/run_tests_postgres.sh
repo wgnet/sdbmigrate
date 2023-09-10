@@ -27,6 +27,6 @@ cd /sdbmigrate
 # Exclude mysql tests
 # If we run only "postgres" tests here, then we can accidentially skip some tests that we
 # forget to mark as mysql or postgres tests.
-TOXENV=`sudo -u postgres tox -c /sdbmigrate/tox.ini --listenvs | grep -Ev "\-(mysql|all)" | tr '\n' ','`
+TOXENV=`sudo -u postgres tox -c /sdbmigrate/tox.ini --listenvs | grep -Ev "(mysql|all|pylint|flake8)" | tr '\n' ','`
 echo "Running tox envs: $TOXENV"
 sudo -u postgres -i tox -c /sdbmigrate/tox.ini -e $TOXENV

@@ -672,7 +672,7 @@ class Migration:
         self.lang = lang
         if path is not None:
             migration_path = os.path.join(path, full_name)
-            with open(migration_path) as migration_file:
+            with open(migration_path, encoding='utf8') as migration_file:
                 self.code = migration_file.read()
 
     def __str__(self):
@@ -684,7 +684,7 @@ class Migration:
 
 def load_sdbmigrate_config(path_to_config):
     try:
-        with open(path_to_config) as config_file:
+        with open(path_to_config, encoding='utf8') as config_file:
             sdbmigrate_config = yaml.load(config_file, Loader=Loader)
             logging.debug("sdbmigrate config:\n %s", pprint.pformat(sdbmigrate_config))
 
@@ -808,7 +808,7 @@ def apply_migrations(sdbmigrate_state, migrations):
         for migration in migrations:
             if target_schema_version is not None and db.schema_version >= target_schema_version:
                 logging.info(
-                    "Target schema version %s was reached on %s. " "Stop further migrations.",
+                    "Target schema version %s was reached on %s. Stop further migrations.",
                     migration.full_name,
                     db,
                 )

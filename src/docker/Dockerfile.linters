@@ -1,0 +1,40 @@
+# Copyright 2022 Wargaming Group Limited
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# vim:set ft=dockerfile:
+###### Base image
+FROM ubuntu:jammy AS base
+
+# make the "en_US.UTF-8" locale so postgres will be utf-8 enabled by default
+RUN apt-get update && apt-get install -y software-properties-common locales && \
+    rm -rf /var/lib/apt/lists/* && \
+    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+ENV LANG en_US.utf8
+ENV DEBIAN_FRONTEND noninteractive
+RUN add-apt-repository -y ppa:deadsnakes/ppa 
+RUN apt-get -o Acquire::AllowInsecureRepositories=true \
+        -o Acquire::AllowDowngradeToInsecureRepositories=true update \
+    && apt-get install -y \
+        sudo \
+        wget \
+        libssl-dev \
+        python3-pip \
+        python3.8-dev \
+        python3.8-distutils \
+        python3.10-dev \
+        pkg-config \
+    && pip3 install tox==3.20.0
+
+
+COPY ./ /sdbmigrate
+CMD ["/sdbmigrate/docker/run_tests_linters.sh"]

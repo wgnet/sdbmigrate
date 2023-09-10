@@ -5,15 +5,22 @@ sdbmigrate - easy-peasy tool for applying set of SQL migration on PostgreSQL or 
 
 Supported Python versions:
 
-    - 2.7.X
     - 3.8.X
+    - 3.9.X
+    - 3.10.X
+
+Deprecated Python versions(should work fine, buy support will be dropped soon): 
+ 
+    - 2.7.X
 
 Supported PostgreSQL versions:
 
-    - 9.6.X
     - 10.X
     - 11.X
+    - 12.X
     - 13.X
+    - 14.X
+    - 15.X
 
 Supported MySQL versions:
 

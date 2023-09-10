@@ -13,7 +13,7 @@
 # limitations under the License.
 # vim:set ft=dockerfile:
 ###### Base image
-FROM ubuntu:focal AS base
+FROM ubuntu:jammy AS base
 
 # make the "en_US.UTF-8" locale so postgres will be utf-8 enabled by default
 RUN apt-get update && apt-get install -y software-properties-common locales && \
@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y software-properties-common locales && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 ENV LANG en_US.utf8
 ENV DEBIAN_FRONTEND noninteractive
-
+RUN add-apt-repository -y ppa:deadsnakes/ppa 
 RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         -o Acquire::AllowDowngradeToInsecureRepositories=true update \
     && apt-get install -y \
@@ -29,29 +29,11 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         wget \
         libssl-dev \
         python3-pip \
-        python2.7-dev \
         python3.8-dev \
-    && pip3 install tox
-
-
-###### MySQL image
-FROM base AS sdbmigrate_mysql
-ARG MYSQL_VERSION=5.7
-ARG MYSQL_ATPCONF=mysql-apt-config_0.8.18-1_all.deb
-RUN wget http://repo.mysql.com/$MYSQL_ATPCONF \
-    && echo mysql-apt-config    mysql-apt-config/repo-codename  select  bionic | debconf-set-selections \
-    && echo mysql-apt-config    mysql-apt-config/repo-distro    select  ubuntu | debconf-set-selections \
-    && echo mysql-apt-config    mysql-apt-config/select-server  select  mysql-$MYSQL_VERSION | debconf-set-selections \
-    && echo mysql-apt-config    mysql-apt-config/select-product select  Ok | debconf-set-selections \
-    && dpkg -i $MYSQL_ATPCONF \
-    && rm $MYSQL_ATPCONF \
-    && apt-get update -q && apt-get install -y \
-        default-libmysqlclient-dev \
-        mysql-client=$MYSQL_VERSION.*-1ubuntu18.04 \
-        mysql-community-server=$MYSQL_VERSION.*-1ubuntu18.04 \
-        mysql-server=$MYSQL_VERSION.*-1ubuntu18.04
-COPY ./ /sdbmigrate
-CMD ["/sdbmigrate/docker/run_tests_mysql.sh"]
+        python3.8-distutils \
+        python3.10-dev \
+        pkg-config \
+    && pip3 install tox==3.20.0
 
 
 ###### Postgres image
@@ -59,7 +41,7 @@ CMD ["/sdbmigrate/docker/run_tests_mysql.sh"]
 FROM base AS sdbmigrate_postgres
 ARG PG_MAJOR=13
 RUN groupadd -r postgres --gid=1100 && useradd -r -d /var/lib/postgresql -g postgres --uid=1100 postgres
-RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ focal-pgdg main' $PG_MAJOR > /etc/apt/sources.list.d/pgdg.list
+RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jammy-pgdg main' $PG_MAJOR > /etc/apt/sources.list.d/pgdg.list
 RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         -o Acquire::AllowDowngradeToInsecureRepositories=true update \
     && apt-get \
