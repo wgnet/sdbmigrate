@@ -1,3 +1,7 @@
+![Python Versions][python version badge]
+![PostgreSQL Versions][postgresql version badge]
+![MySQL Versions][mysql version badge]
+
 # SdbMigrate tool
 
 sdbmigrate - easy-peasy tool for applying set of SQL migration on PostgreSQL or MySQL. Supports sharding out of the box.
@@ -9,8 +13,8 @@ Supported Python versions:
     - 3.9.X
     - 3.10.X
 
-Deprecated Python versions(should work fine, buy support will be dropped soon): 
- 
+Deprecated Python versions(should work fine, buy support will be dropped soon):
+
     - 2.7.X
 
 Supported PostgreSQL versions:
@@ -216,4 +220,9 @@ make test
 5. Run tests
     ```
     make -C src test_local
-    ```
+   ```
+
+<!-- Badges -->
+[python version badge]: https://img.shields.io/badge/python-3.8%20to%203.10-green.svg?style=plastic```
+[postgresql version badge]: https://img.shields.io/badge/postgresql-10%20to%2015-darkgreen.svg?style=plastic```
+[mysql version badge]: https://img.shields.io/badge/mysql-5.7%20to%208.0-darkgreen.svg?style=plastic```
