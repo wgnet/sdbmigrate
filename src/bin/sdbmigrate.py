@@ -13,7 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Cool database migration tool both for sharded and simple databases
+"""Cool database migration tool both for sharded and simple databases.
+
+Available actions(specified by --action or -a):
+apply    -- run set of migration on target databases according to config;
+generate -- create next basic migration from the template and
+            put to directory with migrations.
+
 """
 import sys
 import argparse
@@ -686,25 +692,36 @@ class Migration:
         full_name=None,
         path=None,
         lang=None,
+        code=None
     ):
         self.version = int(version)
         self.type1 = type1
         self.type2 = type2
         self.short_name = short_name
         self.full_name = full_name
-        self.code = None
+        self.code = code
         self.path = path
         self.lang = lang
-        if path is not None:
-            migration_path = os.path.join(path, full_name)
-            with open(migration_path, encoding='utf8') as migration_file:
-                self.code = migration_file.read()
 
     def __str__(self):
         return 'Migration(version="{}", full_name="{}")'.format(self.version, self.full_name)
 
     def __repr__(self):
         return self.__str__()
+
+    def read(self):
+        """ Read migration code from file.
+        """
+        migration_path = os.path.join(self.path, self.full_name)
+        with open(migration_path, mode='r', encoding='utf8') as migration_file:
+            self.code = migration_file.read()
+
+    def write(self):
+        """ Write migration code to file.
+        """
+        migration_path = os.path.join(self.path, self.full_name)
+        with open(migration_path, mode='w', encoding='utf8') as migration_file:
+            migration_file.write(self.code)
 
 
 def load_sdbmigrate_config(path_to_config):
@@ -760,6 +777,7 @@ def load_migrations(path_to_migrations):
             path=path_to_migrations,
             lang=match_result.group(5),
         )
+        migration.read()
         clean_migration_list.append(migration)
 
     # sort migration by version
@@ -822,6 +840,57 @@ def _do_apply_one_migration(sdbmigrate_state, cursor, db, migration):
     db_wrapper.set_migration_applied(cursor, db, migration)
     db.schema_version = migration.version
     logging.info("Migration %s was applied on %s", migration.full_name, db)
+
+
+def generate_next_migration(sdbmigrate_state, migrations):
+    """
+    :param sdbmigrate_state: dictionary with various sdbmigrate settings
+    :param migrations: list of migrations to apply
+    :return:
+    """
+    last_migration = migrations[-1]
+    next_version = last_migration.version + 1
+    new_migration_params = {
+        "trx_plain_sql": (Migration.MIGRATION_TYPE1_TRX, Migration.MIGRATION_TYPE2_PLAIN, MIGRATION_LANG_SQL),
+        "trx_shard_py": (Migration.MIGRATION_TYPE1_TRX, Migration.MIGRATION_TYPE2_SHARD, MIGRATION_LANG_PYTHON),
+        "notrx_shard_sql": (Migration.MIGRATION_TYPE1_NOTRX, Migration.MIGRATION_TYPE2_PLAIN, MIGRATION_LANG_PYTHON),
+        "notrx_plain_py": (Migration.MIGRATION_TYPE1_NOTRX, Migration.MIGRATION_TYPE2_SHARD, MIGRATION_LANG_SQL),
+    }
+    new_migration_code = {
+        "trx_plain_sql": """CREATE TABLE test (id bigint);
+        """,
+        "trx_shard_py": """global cursor
+            global shard_id
+            sql = 'CREATE TABLE test_py_{shard_id} (id bigint);'
+            cursor.execute(sql.format(shard_id=shard_id))
+        """,
+        "notrx_shard_sql": """CREATE SEQUENCE test_uniq_seq_<shard_id>;
+            CREATE TABLE test_<shard_id> (id bigint);
+        """,
+        "notrx_plain_py": """global cursor
+            sql = 'CREATE TABLE test_py (id bigint);'
+            cursor.execute(sql)
+        """,
+    }
+    template = sdbmigrate_state["args"].generate_template
+    type1, type2, lang = new_migration_params[template]
+    short_name = "new_migration"
+    full_name = f"V{next_version:04d}__{type1}_{type2}__{short_name}.{lang}"
+    path = sdbmigrate_state["args"].migrations_dir
+    code = "\n".join([line.strip() for line in new_migration_code[template].split("\n")])
+    next_migration = Migration(
+        version=next_version,
+        type1=type1,
+        type2=type2,
+        full_name=full_name,
+        short_name=short_name,
+        path=path,
+        lang=lang,
+        code=code
+    )
+    next_migration.write()
+    logging.info(f"Generated new migration {next_migration.path}/{next_migration.full_name} "
+                 f"from template {template}")
 
 
 def apply_migrations(sdbmigrate_state, migrations):
@@ -888,6 +957,20 @@ def main():
         help="Path to sdbmigrate configuration file",
     )
     parser.add_argument(
+        "--action",
+        "-a",
+        default="apply",
+        choices=("apply", "generate"),
+        help="Specify action which will be performed during script run.",
+    )
+    parser.add_argument(
+        "--generate-template",
+        "-g",
+        default="trx_plain_sql",
+        choices=("trx_plain_sql", "trx_shard_py", "notrx_plain_py", "notrx_shard_sql"),
+        help="Specify template to generate new empty migration.",
+    )
+    parser.add_argument(
         "-d",
         "--migrations-dir",
         type=str,
@@ -940,13 +1023,19 @@ def main():
 
     sdbmigrate_config = load_sdbmigrate_config(args.config_file)
     migrations = load_migrations(args.migrations_dir)
-    db_wrapper = DbWrapper(args, sdbmigrate_config)
-    db_wrapper.init_sdbmigrate_state()
+    sdbmigrate_state = {"args": args}
 
-    sdbmigrate_state = {"args": args, "db_wrapper": db_wrapper}
+    if args.action in ("apply", ):
+        db_wrapper = DbWrapper(args, sdbmigrate_config)
+        db_wrapper.init_sdbmigrate_state()
+        sdbmigrate_state["db_wrapper"] = db_wrapper
 
-    # apply loaded migrations
-    apply_migrations(sdbmigrate_state, migrations)
+    # run specified action
+    action_map = {
+        'apply': apply_migrations,
+        'generate': generate_next_migration,
+    }
+    action_map[args.action](sdbmigrate_state, migrations)
 
 
 if __name__ == "__main__":
