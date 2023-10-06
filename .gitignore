@@ -13,3 +13,6 @@ dist
 # locals scripts
 upload*.sh
 build*.sh
+
+# dev files
+.idea

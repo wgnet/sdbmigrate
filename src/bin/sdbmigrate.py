@@ -65,7 +65,7 @@ class SdbInvalidEnv(SdbInvalidConfig):
     """Migration error because of invalid sdbmigrate env"""
 
 
-class DbSession:
+class DbSession:  # pylint: disable=too-many-instance-attributes
     """Class for encapsulating all about sharded DB
     and its settings.
     """
@@ -79,6 +79,8 @@ class DbSession:
         schema_version=None,
         shard_ids=None,
         migrations=None,
+        migrate_state_schema=None,
+        env=None
     ):
         self.config = db_config
         self.host = self.config["host"]
@@ -94,11 +96,19 @@ class DbSession:
         self.schema_version = schema_version
         self.shard_ids = shard_ids
         self.migrations = migrations
+        self.migrate_state_schema = migrate_state_schema
+        self.env = env
 
     @property
     def schema(self):
+        if self.migrate_state_schema and self.type == DB_TYPE_POSTGRES:
+            return self.migrate_state_schema
+
         if self.type == DB_TYPE_POSTGRES:
             return "public"
+
+        # For MySQL Schema===Database and can't be created and used as flexible
+        # as in PostgreSQL, see https://dev.mysql.com/doc/refman/8.0/en/create-database.html
         return self.name
 
     def __str__(self):
@@ -329,13 +339,20 @@ class DbWrapper:
         self.log = logging.getLogger(self.__class__.__name__)
         self.args = args
         self.sdbmigrate_config = sdbmigrate_config
+        self.migrate_state_schema = None
 
         self.db_sessions = []
         for db_index, db in enumerate(sdbmigrate_config["databases"]):
             db_config = copy.copy(db)
             trx_conn = self.get_db_connection(db)
             notrx_conn = self.get_db_connection(db, autocommit=True)
-            db_session = DbSession(db_config, db_index, trx_conn, notrx_conn)
+            if self.args.migrate_state_schema:
+                self.migrate_state_schema = self.args.migrate_state_schema
+
+            db_session = DbSession(
+                db_config, db_index, trx_conn, notrx_conn,
+                migrate_state_schema=self.migrate_state_schema
+            )
             self.db_sessions.append(db_session)
 
     def get_db_connection(self, db_info, autocommit=False):
@@ -419,7 +436,7 @@ class DbWrapper:
 
     def init_sdbmigrate_env(self, cursor, db):
         sdbmigrate_env = self.sdbmigrate_config.get("env", {})
-        # by default sdbmigrate environment is frozen and may be reload only
+        # by default sdbmigrate environment is frozen and may be reloaded only
         # if you specified --force-update-env option
         if self.is_env_initialized(cursor, db) and not self.args.force_update_env:
             logging.debug("Sdb env is already initialized in db `%s`", db)
@@ -600,11 +617,16 @@ class DbWrapper:
             # init sdbmigrate state
             with db.trx_conn as db_conn:
                 with db_conn.cursor() as cursor:
+                    if self.migrate_state_schema:
+                        self.init_schema(cursor)
                     self.init_sdbmigrate_state_tables(cursor, db)
                     self.init_sdbmigrate_shard_state(cursor, db)
                     self.init_sdbmigrate_env(cursor, db)
 
             self.load_sdbmigrate_state(db)
+
+    def init_schema(self, cursor):
+        cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {self.migrate_state_schema}")
 
     def init_sdbmigrate_state_tables(self, cursor, db):
         for table_name, sql in self.SDB_STATE_TABLES.items():
@@ -891,6 +913,12 @@ def main():
         default=False,
         action="store_true",
         help="For update sdbmigrate env variables(by default they are frozen)",
+    )
+    parser.add_argument(
+        "--migrate-state-schema",
+        type=str,
+        help=("Specify custom schema name for migration state. "
+              "This option is supported only for PostgreSQL.")
     )
 
     # parse command line arguments

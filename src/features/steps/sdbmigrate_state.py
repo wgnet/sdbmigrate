@@ -19,6 +19,15 @@ from features.steps.common import DbType, get_sdbmigrate_sharding_state
 
 @then("database has initialized sdbmigrate state schema")
 def step_impl(context):
+    verify_sdbmigrate_state_schema(context)
+
+
+@then('database has initialized sdbmigrate state schema in schema "{schema_name}"')
+def step_impl(context, schema_name):
+    verify_sdbmigrate_state_schema(context, schema_name)
+
+
+def verify_sdbmigrate_state_schema(context, schema_name=None):
     expected_sdbmigrate_state_tables = [
         "_sdbmigrate_migrations",
         "_sdbmigrate_sharding_state",
@@ -27,18 +36,39 @@ def step_impl(context):
     for db_info in context.databases.values():
         with db_info["conn"] as conn:
             with conn.cursor() as cur:
-                for sdbmigrate_table in expected_sdbmigrate_state_tables:
-                    cur.execute("SELECT 1 from {table}".format(table=sdbmigrate_table))
+                for table in expected_sdbmigrate_state_tables:
+                    if schema_name:
+                        sql = f"SELECT 1 from {schema_name}.{table}"
+                    else:
+                        sql = f"SELECT 1 from {table}"
+
+                    cur.execute(sql)
 
 
 @then("sdbmigrate state has correct migrations")
 def step_impl(context):
+    verify_sdbmigrate_state_migrations(context)
+
+
+@then('sdbmigrate state has correct migrations in schema "{schema_name}"')
+def step_impl(context, schema_name):
+    verify_sdbmigrate_state_migrations(context, schema_name)
+
+
+def verify_sdbmigrate_state_migrations(context, schema_name=None):
     migrations = os.listdir(context.migration_dir)
     for db_info in context.databases.values():
         with db_info["conn"] as conn:
             with conn.cursor() as cur:
                 for migration_name in migrations:
-                    sql = "SELECT count(1) from _sdbmigrate_migrations WHERE migration_name=%(migration_name)s"
+                    if schema_name:
+                        sql = f"""
+                            SELECT count(1) from
+                            {schema_name}._sdbmigrate_migrations WHERE
+                            migration_name=%(migration_name)s
+                        """
+                    else:
+                        sql = "SELECT count(1) from _sdbmigrate_migrations WHERE migration_name=%(migration_name)s"
                     cur.execute(sql, {"migration_name": migration_name})
                     migration_in_db = cur.fetchone()[0]
                     assert migration_in_db == 1, "Migration {} was not applied".format(
@@ -54,6 +84,15 @@ def cast_value(raw_value, type_as_str):
 
 @then("sdbmigrate state has correct env")
 def step_impl(context):
+    verify_migration_env(context)
+
+
+@then('sdbmigrate state has correct env in schema "{schema_name}"')
+def step_impl(context, schema_name):
+    verify_migration_env(context, schema_name)
+
+
+def verify_migration_env(context, schema_name=None):
     env = context.sdbmigrate_config.get("env", {})
     for db in context.databases.values():
         with db["conn"] as conn:
@@ -62,7 +101,9 @@ def step_impl(context):
                     if db["db_info"]["type"] == DbType.mysql:
                         sql = "SELECT value, type from _sdbmigrate_env WHERE `key`=%(key)s"
                     else:
-                        sql = "SELECT value, type from _sdbmigrate_env WHERE key=%(key)s"
+                        if schema_name is None:
+                            schema_name = 'public'
+                        sql = f"SELECT value, type from {schema_name}._sdbmigrate_env WHERE key=%(key)s"
                     cur.execute(sql, {"key": key})
                     res = cur.fetchone()
                     assert res, "Unable to find in DB env param {key}:{param}".format(
@@ -86,8 +127,12 @@ def step_impl(context):
                     assert cast_value(db_value, db_type) == param["value"], msg
 
 
-@then("sdbmigrate state has correct auto sharding")
-def step_impl(context):
+@then('sdbmigrate state has correct auto sharding in schema "{schema_name}"')
+def step_impl(context, schema_name):
+    verify_migration_sharding_state(context, schema_name)
+
+
+def verify_migration_sharding_state(context, schema_name=None):
     shard_count = context.sdbmigrate_config["shard_count"]
     shard_on_db = context.sdbmigrate_config["shard_on_db"]
     all_shard_ids = []
@@ -95,7 +140,7 @@ def step_impl(context):
     for db in context.databases.values():
         with db["conn"] as conn:
             with conn.cursor() as cur:
-                sharding_state = get_sdbmigrate_sharding_state(db["db_info"], cur)
+                sharding_state = get_sdbmigrate_sharding_state(db["db_info"], cur, schema_name)
                 db_shard_count = sharding_state["shard_count"]
                 db_shard_ids = sharding_state["shard_ids"]
                 assert db_shard_count == shard_count, "shard_count mismatch in config and db"
@@ -104,8 +149,13 @@ def step_impl(context):
                 all_shard_ids.extend(db_shard_ids)
 
     assert (
-        len(all_shard_ids) == shard_count
+            len(all_shard_ids) == shard_count
     ), "total shard_count in DB shard_ids should be equal to config shard_count"
+
+
+@then("sdbmigrate state has correct auto sharding")
+def step_impl(context):
+    verify_migration_sharding_state(context)
 
 
 def compare_manual_shard_info(db_shard_ids, config_shard_ids):
@@ -120,13 +170,22 @@ def compare_manual_shard_info(db_shard_ids, config_shard_ids):
 
 @then("sdbmigrate state has correct manual sharding")
 def step_impl(context):
+    verify_migration_state_manual_sharding(context)
+
+
+@then('sdbmigrate state has correct manual sharding in schema "{schema_name}"')
+def step_impl(context, schema_name):
+    verify_migration_state_manual_sharding(context, schema_name)
+
+
+def verify_migration_state_manual_sharding(context, schema_name=None):
     shard_count = context.sdbmigrate_config["shard_count"]
     all_shard_ids = []
 
     for db in context.databases.values():
         with db["conn"] as conn:
             with conn.cursor() as cur:
-                sharding_state = get_sdbmigrate_sharding_state(db["db_info"], cur)
+                sharding_state = get_sdbmigrate_sharding_state(db["db_info"], cur, schema_name)
                 db_shard_count = sharding_state["shard_count"]
                 db_shard_ids = sharding_state["shard_ids"]
                 compare_manual_shard_info(db_shard_ids, db["db_info"]["shards"])

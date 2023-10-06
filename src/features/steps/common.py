@@ -19,8 +19,12 @@ class DbType:
     mysql = "mysql"
 
 
-def get_sdbmigrate_sharding_state(db_info, cur):
-    sql = "SELECT shard_count, shard_ids from _sdbmigrate_sharding_state WHERE id=0"
+def get_sdbmigrate_sharding_state(db_info, cur, schema_name=None):
+    if schema_name:
+        sql = f"SELECT shard_count, shard_ids from {schema_name}._sdbmigrate_sharding_state WHERE id=0"
+    else:
+        sql = "SELECT shard_count, shard_ids from _sdbmigrate_sharding_state WHERE id=0"
+
     cur.execute(sql)
     res = cur.fetchone()
     shard_ids = res[1]

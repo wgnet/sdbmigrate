@@ -5,6 +5,10 @@ dist
 *.yml
 *.egg-info
 *~
+*.log
+*.log.*
+.tox
+.coverage
 
 # symlinks
 LICENSE
