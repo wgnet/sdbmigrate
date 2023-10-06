@@ -1,0 +1,14 @@
+# sdbmigrate internal environment variables
+env:
+    region_id:
+      type: int
+      value: 1
+
+# information about database masters and their connection info
+databases:
+    - name: "sdbmigrate_behave_simple"
+      host: "127.0.0.1"
+      port: 3306
+      type: mysql
+      user: "test_behave"
+      password: "test_behave"

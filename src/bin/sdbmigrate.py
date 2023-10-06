@@ -396,8 +396,11 @@ class DbWrapper:
             return False
 
         shard_count = self.sdbmigrate_config["shard_count"]
-        shard_distribution_mode = self.sdbmigrate_config["shard_distribution_mode"]
-        if shard_distribution_mode == "auto":
+        shard_distribution_mode = self.sdbmigrate_config.get("shard_distribution_mode", None)
+        if shard_distribution_mode is None:
+            # It's a basic config without sharding.
+            shard_ids = []
+        elif shard_distribution_mode == "auto":
             shard_on_db = self.sdbmigrate_config["shard_on_db"]
             shard_ids = self.get_shards_for_db_auto(db.index, shard_count, shard_on_db)
         elif shard_distribution_mode == "manual":
@@ -717,8 +720,13 @@ def load_sdbmigrate_config(path_to_config):
     assert sdbmigrate_config is not None, "sdbmigrate_config should be loaded"
 
     database_count = len(sdbmigrate_config["databases"])
+    shard_mode = sdbmigrate_config.get("shard_distribution_mode", None)
+    # Initialize sharding config for the basic config without sharding.
+    if "shard_count" not in sdbmigrate_config:
+        sdbmigrate_config["shard_count"] = 0
+
     if (
-        sdbmigrate_config["shard_distribution_mode"] == "auto"
+        shard_mode == "auto"
         and sdbmigrate_config["shard_on_db"] * database_count != sdbmigrate_config["shard_count"]
     ):
         msg = "shard_count: {}  does not match to shard_on_db*database_count: {} * {}".format(

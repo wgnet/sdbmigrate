@@ -20,10 +20,11 @@ mysqld_safe &
 sleep 3
 
 echo "CREATE DATABASE IF NOT EXISTS sdbmigrate1_behave; \
-    CREATE DATABASE IF NOT EXISTS sdbmigrate2_behave; \
-    CREATE USER IF NOT EXISTS 'test_behave'@'%' IDENTIFIED BY 'test_behave'; \
-    GRANT ALL PRIVILEGES ON *.* TO 'test_behave'@'%'; \
-    FLUSH PRIVILEGES;" | mysql -u root
+      CREATE DATABASE IF NOT EXISTS sdbmigrate2_behave; \
+      CREATE DATABASE IF NOT EXISTS sdbmigrate_behave_simple; \
+      CREATE USER IF NOT EXISTS 'test_behave'@'%' IDENTIFIED BY 'test_behave'; \
+      GRANT ALL PRIVILEGES ON *.* TO 'test_behave'@'%'; \
+      FLUSH PRIVILEGES;" | mysql -u root
 
 cd /sdbmigrate
 
