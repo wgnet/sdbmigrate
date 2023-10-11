@@ -676,7 +676,7 @@ class DbWrapper:
 class Migration:
     """Class for representing one migration loading logic"""
 
-    NAME_PATTERN = "V([0-9]{4})__([A-Z]+)_([A-Z]+)__([a-z0-9_]+).([a-z]+)"
+    NAME_PATTERN = "^V([0-9]{4})__([A-Z]+)_([A-Z]+)__([a-z0-9_]+).([a-z]+)$"
     MIGRATION_TYPE1_TRX = "TRX"
     MIGRATION_TYPE1_NOTRX = "NOTRX"
 
@@ -848,13 +848,34 @@ def generate_next_migration(sdbmigrate_state, migrations):
     :param migrations: list of migrations to apply
     :return:
     """
-    last_migration = migrations[-1]
+    if len(migrations) > 0:
+        last_migration = migrations[-1]
+    else:
+        # handle case with generating first migration in migration directory
+        last_migration = Migration(version=-1)
+
     next_version = last_migration.version + 1
     new_migration_params = {
-        "trx_plain_sql": (Migration.MIGRATION_TYPE1_TRX, Migration.MIGRATION_TYPE2_PLAIN, MIGRATION_LANG_SQL),
-        "trx_shard_py": (Migration.MIGRATION_TYPE1_TRX, Migration.MIGRATION_TYPE2_SHARD, MIGRATION_LANG_PYTHON),
-        "notrx_shard_sql": (Migration.MIGRATION_TYPE1_NOTRX, Migration.MIGRATION_TYPE2_PLAIN, MIGRATION_LANG_PYTHON),
-        "notrx_plain_py": (Migration.MIGRATION_TYPE1_NOTRX, Migration.MIGRATION_TYPE2_SHARD, MIGRATION_LANG_SQL),
+        "trx_plain_sql": (
+            Migration.MIGRATION_TYPE1_TRX,
+            Migration.MIGRATION_TYPE2_PLAIN,
+            MIGRATION_LANG_SQL
+        ),
+        "trx_shard_py": (
+            Migration.MIGRATION_TYPE1_TRX,
+            Migration.MIGRATION_TYPE2_SHARD,
+            MIGRATION_LANG_PYTHON
+        ),
+        "notrx_shard_sql": (
+            Migration.MIGRATION_TYPE1_NOTRX,
+            Migration.MIGRATION_TYPE2_SHARD,
+            MIGRATION_LANG_SQL
+        ),
+        "notrx_plain_py": (
+            Migration.MIGRATION_TYPE1_NOTRX,
+            Migration.MIGRATION_TYPE2_PLAIN,
+            MIGRATION_LANG_PYTHON
+        ),
     }
     new_migration_code = {
         "trx_plain_sql": """CREATE TABLE test (id bigint);
@@ -864,8 +885,7 @@ def generate_next_migration(sdbmigrate_state, migrations):
             sql = 'CREATE TABLE test_py_{shard_id} (id bigint);'
             cursor.execute(sql.format(shard_id=shard_id))
         """,
-        "notrx_shard_sql": """CREATE SEQUENCE test_uniq_seq_<shard_id>;
-            CREATE TABLE test_<shard_id> (id bigint);
+        "notrx_shard_sql": """CREATE TABLE test_<shard_id> (id bigint);
         """,
         "notrx_plain_py": """global cursor
             sql = 'CREATE TABLE test_py (id bigint);'
@@ -889,8 +909,39 @@ def generate_next_migration(sdbmigrate_state, migrations):
         code=code
     )
     next_migration.write()
-    logging.info(f"Generated new migration {next_migration.path}/{next_migration.full_name} "
-                 f"from template {template}")
+    logging.info("Generated new migration %s/%s from template %s", next_migration.path,
+                 next_migration.full_name, template)
+
+
+def apply_migration(sdbmigrate_state, db: DbSession, migration: Migration):
+    is_dry_run = sdbmigrate_state["args"].dry_run
+    if migration.type1 == Migration.MIGRATION_TYPE1_TRX:
+        # apply migration step transactionally
+        # using context manager
+        with db.trx_conn as db_conn:
+            with db_conn.cursor() as cursor:
+                _do_apply_one_migration(sdbmigrate_state, cursor, db, migration)
+            if is_dry_run:
+                logging.info(
+                    "Rollback migration %s on %s because of ---dry-run",
+                    migration.full_name,
+                    db,
+                )
+                db_conn.rollback()
+
+    elif migration.type1 == Migration.MIGRATION_TYPE1_NOTRX:
+        # apply migration step without transaction(autocommit=True)
+        with db.notrx_conn.cursor() as cursor:
+            if is_dry_run:
+                logging.info(
+                    "Skip notrx migration run %s on %s because of ---dry-run",
+                    migration.full_name,
+                    db,
+                )
+            else:
+                _do_apply_one_migration(sdbmigrate_state, cursor, db, migration)
+    else:
+        raise SdbInvalidConfig("unsupported migration type1 {}".format(migration.type1))
 
 
 def apply_migrations(sdbmigrate_state, migrations):
@@ -900,7 +951,6 @@ def apply_migrations(sdbmigrate_state, migrations):
     :return:
     """
     db_wrapper = sdbmigrate_state["db_wrapper"]
-    is_dry_run = sdbmigrate_state["args"].dry_run
     target_schema_version = sdbmigrate_state["args"].target_schema_version
 
     for db in db_wrapper.db_sessions:
@@ -916,33 +966,12 @@ def apply_migrations(sdbmigrate_state, migrations):
             if db.schema_version >= migration.version:
                 logging.debug("Migration %s was already applied on %s", migration.full_name, db)
                 continue
-            if migration.type1 == Migration.MIGRATION_TYPE1_TRX:
-                # apply migration step transactionally
-                # using context manager
-                with db.trx_conn as db_conn:
-                    with db_conn.cursor() as cursor:
-                        _do_apply_one_migration(sdbmigrate_state, cursor, db, migration)
-                    if is_dry_run:
-                        logging.info(
-                            "Rollback migration %s on %s because of ---dry-run",
-                            migration.full_name,
-                            db,
-                        )
-                        db_conn.rollback()
-
-            elif migration.type1 == Migration.MIGRATION_TYPE1_NOTRX:
-                # apply migration step without transaction(autocommit=True)
-                with db.notrx_conn.cursor() as cursor:
-                    if is_dry_run:
-                        logging.info(
-                            "Skip notrx migration run %s on %s because of ---dry-run",
-                            migration.full_name,
-                            db,
-                        )
-                    else:
-                        _do_apply_one_migration(sdbmigrate_state, cursor, db, migration)
-            else:
-                raise SdbInvalidConfig("unsupported migration type1 {}".format(migration.type1))
+            try:
+                apply_migration(sdbmigrate_state, db, migration)
+            except Exception as e:
+                logging.error('Unable to apply migration %s to %s. Please review migration code.',
+                              migration.full_name, db)
+                raise e
 
 
 def main():

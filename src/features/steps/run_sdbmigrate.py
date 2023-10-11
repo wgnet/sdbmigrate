@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import sys
 
@@ -36,7 +37,6 @@ def run_sdbmigrate(context, args=""):
     ]
     if args:
         cmd += str(args).split(" ")
-
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     stdout, stderr = p.communicate(timeout=SDB_MIGRATE_RUN_TIMEOUT)
@@ -58,6 +58,18 @@ def step_impl(context):
 @given("successful sdbmigrate.py run with dry-run")
 def step_impl(context):
     res = run_sdbmigrate(context, args="--dry-run")
+
+    if res[0] != 0:
+        sys.stdout.write(res[1])
+        sys.stderr.write(res[2])
+        raise Exception("Expected success got retcode=%d" % res[0])
+
+    context.last_migrate_res = {"ret": res[0], "out": res[1], "err": res[2]}
+
+
+@given('generate migration using template "{template}"')
+def step_impl(context, template):
+    res = run_sdbmigrate(context, args=f"--action generate --generate-template {template}")
 
     if res[0] != 0:
         sys.stdout.write(res[1])
