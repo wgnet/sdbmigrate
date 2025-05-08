@@ -36,14 +36,13 @@ def init_postgres_databases(context):
             password=db_info["password"],
         )
         conn.autocommit = True
-        with conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT pg_terminate_backend(pid) "
-                    "FROM pg_stat_activity WHERE datname='{}'".format(db_info["name"])
-                )
-                cur.execute("DROP DATABASE IF EXISTS {}".format(db_info["name"]))
-                cur.execute("CREATE DATABASE {}".format(db_info["name"]))
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT pg_terminate_backend(pid) "
+                "FROM pg_stat_activity WHERE datname='{}'".format(db_info["name"])
+            )
+            cur.execute("DROP DATABASE IF EXISTS {}".format(db_info["name"]))
+            cur.execute("CREATE DATABASE {}".format(db_info["name"]))
 
     # init connections for tests
     databases = {}

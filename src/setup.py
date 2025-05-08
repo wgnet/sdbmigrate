@@ -12,8 +12,7 @@ setup(
     install_requires=["pyyaml", "sqlparse >= 0.3.1"],
     packages=[''],
     extras_require={
-        # psycopg2 from version 2.9 breaks sdbmigrate, see https://github.com/psycopg/psycopg2/issues/941
-        "postgres": ["psycopg2 <= 2.8.6"],
+        "postgres": ["psycopg2 >= 2.9.3"],
         "mysql": ["mysqlclient"],
     },
     scripts=["bin/sdbmigrate.py"],
