@@ -13,23 +13,19 @@ Supported Python versions:
     - 3.9.X
     - 3.10.X
 
-Deprecated Python versions(should work fine, buy support will be dropped soon):
-
-    - 2.7.X
 
 Supported PostgreSQL versions:
 
-    - 10.X
-    - 11.X
-    - 12.X
     - 13.X
     - 14.X
     - 15.X
+    - 16.X
+    - 17.X
 
 Supported MySQL versions:
 
-    - 5.7.X
-    - 8.0.X
+    - 8.0
+    - 8.4-lts
 
 ## Main features
 
@@ -224,5 +220,5 @@ make test
 
 <!-- Badges -->
 [python version badge]: https://img.shields.io/badge/python-3.8%20to%203.10-green.svg?style=plastic```
-[postgresql version badge]: https://img.shields.io/badge/postgresql-10%20to%2015-darkgreen.svg?style=plastic```
-[mysql version badge]: https://img.shields.io/badge/mysql-5.7%20to%208.0-darkgreen.svg?style=plastic```
+[postgresql version badge]: https://img.shields.io/badge/postgresql-13%20to%2017-darkgreen.svg?style=plastic```
+[mysql version badge]: https://img.shields.io/badge/mysql-8.0%20to%208.4-darkgreen.svg?style=plastic```
