@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdbmigrate"
-version = "1.1.0"
+version = "1.1.1"
 authors = [
-  { name="Aliaksei Ramanau", email="drednout.by@gmail.com" },
+  { name="Alex Ramanau", email="a.ramanau.pl@gmail.com" },
   { name="Stanislav Ivankin", email="s_ivankin@wargaming.net"},
 ]
 description = "DB migration tool for PostgreSQL/MySQL with sharding support"
@@ -23,5 +23,5 @@ dependencies = ['pyyaml', 'sqlparse >= 0.3.1']
 optional-dependencies = {'postgres' = ['psycopg2 <= 2.8.6'], 'mysql' = ['mysqlclient']}
 
 [project.urls]
-"Homepage" = "https://github.com/wgnet/sdbmigrate"
-"Bug Tracker" = "https://github.com/wgnet/sdbmigrate/issues"
+"Homepage" = "https://github.com/alex-ramanau/sdbmigrate"
+"Bug Tracker" = "https://github.com/alex-ramanau/sdbmigrate/issues"
