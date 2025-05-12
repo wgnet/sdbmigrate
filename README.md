@@ -201,11 +201,11 @@ make test
     FLUSH PRIVILEGES;
     ```
 
-3. Setup python 2.7 and python 3.8 on your local machine.
+3. Setup 3.8 on your local machine.
 
     Mac OS:
     ```
-    brew install python@2.7 python@3.8
+    brew install python@3.8
     ```
 
 4. Install dev requirements.

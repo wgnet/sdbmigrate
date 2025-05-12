@@ -5,9 +5,9 @@ from setuptools import setup
 setup(
     name="sdbmigrate",
     version="1.1.0",
-    author="Aliaksei Ramanau",
-    author_email="drednout.by@gmail.com",
-    url="https://github.com/wgnet/sdbmigrate",
+    author="Alex Ramanau",
+    author_email="a.ramanau.pl@gmail.com",
+    url="https://github.com/alex-ramanau/sdbmigrate",
     include_package_data=True,
     install_requires=["pyyaml", "sqlparse >= 0.3.1"],
     packages=[''],
