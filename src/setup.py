@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="sdbmigrate",
-    version="1.1.1",
+    version="1.1.3",
     author="Alex Ramanau",
     author_email="a.ramanau.pl@gmail.com",
     url="https://github.com/alex-ramanau/sdbmigrate",
