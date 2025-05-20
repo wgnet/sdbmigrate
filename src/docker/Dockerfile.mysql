@@ -13,14 +13,14 @@
 # limitations under the License.
 # vim:set ft=dockerfile:
 ###### Base image
-FROM ubuntu:focal AS base
+FROM ubuntu:jammy AS base
 
 # make the "en_US.UTF-8" locale so postgres will be utf-8 enabled by default
 RUN apt-get update && apt-get install -y software-properties-common locales && \
     rm -rf /var/lib/apt/lists/* && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-ENV LANG en_US.utf8
-ENV DEBIAN_FRONTEND noninteractive
+ENV LANG=en_US.utf8
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN add-apt-repository -y ppa:deadsnakes/ppa 
 RUN apt-get -o Acquire::AllowInsecureRepositories=true \
@@ -29,7 +29,6 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
         sudo \
         wget \
         libssl-dev \
-        python2.7-dev \
         python3-pip \
         python3.8-dev \
         python3.8-distutils \
@@ -40,19 +39,19 @@ RUN apt-get -o Acquire::AllowInsecureRepositories=true \
 
 ###### MySQL image
 FROM base AS sdbmigrate_mysql
-ARG MYSQL_VERSION=5.7
-ARG MYSQL_ATPCONF=mysql-apt-config_0.8.24-1_all.deb
-RUN wget http://repo.mysql.com/$MYSQL_ATPCONF \
-    && echo mysql-apt-config    mysql-apt-config/repo-codename  select  bionic | debconf-set-selections \
+ARG MYSQL_VERSION=8.0
+ARG MYSQL_APTCONF=mysql-apt-config_0.8.34-1_all.deb
+RUN wget http://repo.mysql.com/$MYSQL_APTCONF \
+    && echo mysql-apt-config    mysql-apt-config/repo-codename  select  jammy | debconf-set-selections \
     && echo mysql-apt-config    mysql-apt-config/repo-distro    select  ubuntu | debconf-set-selections \
     && echo mysql-apt-config    mysql-apt-config/select-server  select  mysql-$MYSQL_VERSION | debconf-set-selections \
     && echo mysql-apt-config    mysql-apt-config/select-product select  Ok | debconf-set-selections \
-    && dpkg -i $MYSQL_ATPCONF \
-    && rm $MYSQL_ATPCONF \
+    && dpkg -i $MYSQL_APTCONF \
+    && rm $MYSQL_APTCONF \
     && apt-get update -q && apt-get install -y \
         default-libmysqlclient-dev \
-        mysql-client=$MYSQL_VERSION.*-1ubuntu18.04 \
-        mysql-community-server=$MYSQL_VERSION.*-1ubuntu18.04 \
-        mysql-server=$MYSQL_VERSION.*-1ubuntu18.04
+        mysql-client \
+        mysql-community-server
+
 COPY ./ /sdbmigrate
 CMD ["/sdbmigrate/docker/run_tests_mysql.sh"]

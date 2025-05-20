@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-POSTGRES_MAJOR_VERSIONS = 11 13 14 15
-MYSQL_VERSIONS = 5.7 8.0
+POSTGRES_MAJOR_VERSIONS = 13 14 15 16 17
+MYSQL_VERSIONS = 8.0 8.4-lts
 
 .PHONY: test
 
